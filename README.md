@@ -1,55 +1,50 @@
-# CFS Scheduler Simulation
+# CPU Scheduler Simulation
 
-This project is a simulation of the **Completely Fair Scheduler (CFS)**, a process scheduling algorithm used in the Linux kernel. The simulation demonstrates how CFS manages CPU-bound and I/O-bound tasks by maintaining fairness and prioritizing tasks based on their `vruntime` and `weight`.
+[![Live Demo](https://img.shields.io/badge/Live-Demo-brightgreen?style=for-the-badge)](https://cpu-scheduler-4dgk.onrender.com/)
+
+This project is a simulation environment for various CPU scheduling algorithms. It allows users to define a set of processes with different characteristics (e.g., CPU burst time, priority, I/O-bound vs. CPU-bound) and visualize how different schedulers execute these processes over time. The simulation generates a timeline plot for easy comparison and analysis of algorithm performance.
 
 ---
 
 ## Table of Contents
-1. [Overview](#overview)
-2. [Key Concepts](#key-concepts)
-   - [CFS Parameters](#cfs-parameters)
-   - [Scheduling Logic](#scheduling-logic)
-3. [Simulation Details](#simulation-details)
-   - [CPU-Bound Tasks](#cpu-bound-tasks)
-   - [I/O-Bound Tasks](#io-bound-tasks)
-4. [How It Works](#how-it-works)
-5. [Getting Started](#getting-started)
-6. [Simulation](#simulation)
+1. Overview
+2. Supported Algorithms
+3. Process Types
+   - CPU-Bound Tasks
+   - I/O-Bound Tasks
+4. How It Works
+5. Getting Started
+6. Simulation Examples
 
 ---
 
 ## Overview
 
-The **Completely Fair Scheduler (CFS)** is designed to provide fair CPU time to all tasks by using a virtual runtime (`vruntime`) metric. Tasks with lower `vruntime` are prioritized, ensuring that higher-priority tasks (those with higher weight) get more CPU time. This simulation implements a simplified version of CFS, focusing on:
-
-- **CPU-bound tasks**: Tasks that primarily use the CPU.
-- **I/O-bound tasks**: Tasks that frequently wait for I/O operations.
+This project simulates and visualizes the behavior of several common CPU scheduling algorithms. You can add processes, configure their properties, select a scheduling algorithm, and run the simulation to see a Gantt chart of the process execution timeline. This is useful for understanding and comparing the performance and behavior of different scheduling strategies.
 
 ---
 
-## Key Concepts
+## Supported Algorithms
 
-### CFS Parameters
-- **Weight**: A priority value assigned to each task. Higher weight means higher priority.
-  - Formula: `weight = NICE_0_LOAD / (priority + 1)`
-  - `NICE_0_LOAD` is a constant (1024 in this simulation).
-- **vruntime**: Virtual runtime of a task, calculated as:
-  - `vruntime += (executed_time * NICE_0_LOAD) / weight`
-  - Higher-priority tasks have slower `vruntime` growth.
-- **Runqueue**: A priority queue (min-heap) sorted by `vruntime`. The task with the smallest `vruntime` is scheduled next.
+The simulation supports the following scheduling algorithms:
 
-### Scheduling Logic
-- **CPU-bound tasks**:
-  - Execute for a fixed time slice (1ms in this simulation).
-  - Update `vruntime` based on executed time and weight.
-- **I/O-bound tasks**:
-  - Simulate I/O wait by sleeping for a fixed duration (10ms in this simulation).
-  - Penalize `vruntime` for the I/O wait time.
-  - Execute for a short time slice (1ms) after I/O completion.
+- **Completely Fair Scheduler (CFS)**: The default scheduler in many modern Linux distributions. It aims to provide a fair share of CPU time to all running processes. It uses a red-black tree to store processes and picks the one with the lowest `vruntime` (virtual runtime) to run next, ensuring that processes that have run less get a higher priority.
+
+- **First-Come, First-Served (FCFS)**: A non-preemptive algorithm where processes are executed in the order they arrive. It's simple but can suffer from the "convoy effect," where a long process blocks shorter processes that arrive after it.
+
+- **Shortest Job First (SJF)**: A non-preemptive algorithm that selects the process with the smallest CPU burst time. It is provably optimal for minimizing the average waiting time but requires knowing the burst time in advance, which is not always possible in a real system.
+
+- **Longest Remaining Time First (LRTF)**: A preemptive algorithm that is the inverse of Shortest Remaining Time First (SRTF). It prioritizes the process with the longest remaining execution time. This is generally used for specific use cases and is not a common general-purpose scheduler.
+
+- **Round Robin (RR)**: A preemptive algorithm where each process is assigned a fixed time slice (quantum). The scheduler cycles through the ready queue, running each process for one time quantum. If a process is not finished, it's moved to the back of the queue. It provides good response time for interactive tasks.
+
+- **Priority Based Scheduling (PBS)**: A scheduling method where each process is assigned a priority. The process with the highest priority is selected to run. This can be either preemptive (a higher priority process can interrupt a running lower priority one) or non-preemptive.
 
 ---
 
-## Simulation Details
+## Process Types
+
+The simulation supports two main types of processes to model real-world workloads:
 
 ### CPU-Bound Tasks
 - Tasks that primarily use the CPU.
@@ -57,80 +52,72 @@ The **Completely Fair Scheduler (CFS)** is designed to provide fair CPU time to 
   - `cpu_burst_time`: Total CPU time required.
   - `priority`: Determines the task's weight.
 - Execution:
-  - Run for a fixed time slice (1ms).
-  - Update `vruntime` and reduce `cpu_burst_time`.
-  - Requeue if `cpu_burst_time > 0`.
+  - These tasks will continuously run on the CPU until their burst time is completed, or until they are preempted by the scheduler.
 
 ### I/O-Bound Tasks
 - Tasks that frequently wait for I/O.
 - Each task has:
   - `cpu_burst_time`: Total CPU time required.
   - `priority`: Determines the task's weight.
-  - `iowait`: Simulated I/O wait time (10ms).
+  - `iowait`: Simulated I/O wait time.
 - Execution:
-  - Sleep for `iowait` to simulate I/O wait.
-  - Penalize `vruntime` for the I/O wait time.
-  - Run for a short time slice (1ms) after I/O completion.
-  - Requeue if `cpu_burst_time > 0`.
+  - These tasks run on the CPU for a short period and then enter a waiting state to simulate an I/O operation. After the I/O wait, they return to the ready queue to be scheduled again.
 
 ---
 
 ## How It Works
 
-1. **Initialization**:
-   - All tasks are added to the runqueue with initial `vruntime` values.
-   - Tasks are categorized as CPU-bound or I/O-bound.
-
-2. **Scheduling Loop**:
-   - The scheduler picks the task with the smallest `vruntime` from the runqueue.
-   - If the task is CPU-bound:
-     - Execute for 1ms.
-     - Update `vruntime` and reduce `cpu_burst_time`.
-     - Requeue if `cpu_burst_time > 0`.
-   - If the task is I/O-bound:
-     - Simulate I/O wait by sleeping for 10ms.
-     - Penalize `vruntime` for the I/O wait time.
-     - Execute for 1ms after I/O completion.
-     - Requeue if `cpu_burst_time > 0`.
-
-3. **Termination**:
-   - The simulation ends when all tasks have completed their `cpu_burst_time`.
+1. **Add Processes**: Use the "Add Process" button to create new processes. You can specify the CPU Burst Time, Priority, and Process Nature (CPU Bound or I/O Bound).
+2. **Select Algorithm**: Choose a scheduling algorithm from the dropdown menu.
+3. **Run Simulation**: Click the "Run Simulation" button. The C++ backend will run the scheduling logic for the selected algorithm with the defined processes.
+4. **View Results**: The simulation generates a timeline plot (Gantt chart) showing which process was running at each time unit. This plot is displayed on the web page.
 
 ---
 
 ## Getting Started
 
 ### Prerequisites
-- C++ compiler (e.g., `g++`).
-- Basic understanding of process scheduling.
+- C++ compiler (e.g., `g++`) and `cmake`.
+- Python3 and `pip` for the web server and plotting.
 
 ### Steps to Run the Simulation
 1. Clone the repository:
    ```bash
-   git clone <repo-url>
-   cd cfs-scheduler-cpp
+   git clone https://github.com/devanshgarg024/CPU_scheduler.git
+   cd CPU_scheduler
+   ```
+2. Set up the Python environment and install dependencies:
+   ```bash
    python -m venv /myvenv # create virtual env if not created, use python3 if python not working
    source myvenv/bin/activate
+   pip install -r requirements.txt
+   ```
+3. Build the C++ backend:
+   ```bash
    cd build # make build dir in root folder if it is not there
    cmake ..
    make
-   ./cfs-schedular
-   cd ..
-   python3 plot.py
    ```
+4. Run the web server:
+   ```bash
+   cd .. 
+   python server.py
+   ```
+5. Open your web browser and go to `http://127.0.0.1:5000` to use the simulator.
 
-## Simulation
+---
 
-First simulation is of processes with different vruntime, priority etc but all processes are of IO_BOUND nature whereas second one contains all CPU_BOUND processes.
+## Simulation Examples
 
-We can clearly see that IO tasks are waiting for their iowait time and getting penalised. More priority IO task is getting more penalised and scheduling will get delayed whereas in CPU bound tasks, Process 1 got finalised quickly because it has the highest priroirty and got penalised the least because it started with least vruntime and highest priority. So, resulted in more frequent scheduling.
+The following images show example outputs for the **Completely Fair Scheduler (CFS)** with different workloads.
 
-![image](https://github.com/user-attachments/assets/193d8a9d-fd70-4a32-8a82-d55c0cc1a287)
-![image](https://github.com/user-attachments/assets/d5f5367a-0a17-4ac6-9663-1b06e96e9677)
+### CFS with I/O-Bound Processes
+In this simulation, all processes are I/O-bound. We can observe that tasks wait for their I/O time and their `vruntime` is penalized accordingly. Higher priority I/O tasks, despite being penalized, get scheduled after their I/O wait.
+
+!image
+
+### CFS with CPU-Bound Processes
+In this simulation with CPU-bound tasks, Process 1 finishes first because it has the highest priority (and thus the highest weight). Its `vruntime` increases slowest, causing it to be scheduled more frequently.
 
 
-   _dissecting linux schedulers & implementing our toy cfs_scheduler simulation:- [Link](https://singhdevhub.bearblog.dev/dissecting-linux-schedulers-implementing-our-toy-cfs_scheduler-simulation/)_
-
-
-
-   
+   _dissecting linux schedulers & implementing our toy cfs_scheduler simulation:- Link_
